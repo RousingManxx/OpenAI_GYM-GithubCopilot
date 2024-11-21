@@ -9,9 +9,8 @@ class QLearningAgent:
         self.discount_factor = discount_factor
         self.epsilon = epsilon
         self.epsilon_decay = epsilon_decay
-        self.epsilon_min = epsilon_min
-        # Inicialización de la tabla Q
-        self.q_table = np.zeros(state_space + (action_space.n,))  # Corregido para usar action_space.n
+        self.epsilon_min = epsilon_min  # Asignar epsilon_min
+        self.q_table = np.zeros(state_space + (action_space.n,))
     
     def choose_action(self, state):
         if np.random.rand() < self.epsilon:
@@ -27,9 +26,7 @@ class QLearningAgent:
         self.epsilon = max(self.epsilon_min, self.epsilon * self.epsilon_decay)
 
 def discretize_state(state):
-    # Convert the state to a numpy array if it is not already
-    if isinstance(state, dict):
-        state = np.array(list(state.values()))
+    state = np.array(state) if not isinstance(state, np.ndarray) else state
     
     bins = [np.linspace(-2.4, 2.4, num=24),
             np.linspace(-2.0, 2.0, num=24),
@@ -49,14 +46,16 @@ agent = QLearningAgent(state_space=(24, 24, 24, 24), action_space=env.action_spa
 
 # Entrenamiento del agente
 for episode in range(1000):
-    state = discretize_state(env.reset())
+    observation, _ = env.reset()
+    state = discretize_state(observation)
     total_reward = 0
     done = False
     
     while not done:
         action = agent.choose_action(state)
-        next_state, reward, done, _ = env.step(action)
-        next_state = discretize_state(next_state)
+        next_observation, reward, terminated, truncated, info = env.step(action)
+        done = terminated or truncated  # Combina las condiciones de terminado
+        next_state = discretize_state(next_observation)
         agent.update_q_table(state, action, reward, next_state)
         state = next_state
         total_reward += reward
